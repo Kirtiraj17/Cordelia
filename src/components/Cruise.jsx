@@ -1,8 +1,110 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ItineraryCard from "./ItineraryCard";
-import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
+import {
+  CloseButton,
+  Popover,
+  PopoverButton,
+  PopoverPanel,
+} from "@headlessui/react";
+import { Calendar, DateObject } from "react-multi-date-picker";
 
-const Cruise = ({ itineraries }) => {
+const Cruise = ({ itinerariesData, loading }) => {
+  const { itineraries } = itinerariesData || {};
+  const [filteredItineraries, setFilteredItineraries] = useState([]);
+  const [filterTags, setFilterTags] = useState([]);
+
+  const [selectedDestinations, setSelectedDestinations] = useState([]);
+  const [value, setValue] = useState(new DateObject());
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(null);
+  // console.log(value.format("DD/MM/YYYY"), new DateObject())
+  // console.log(value[0].day, value[0].month.number, value[0].year)
+  // console.log(value[0]?.format("DD/MM/YYYY"), startDate?.getDate(), endDate?.getDate());
+
+  useEffect(() => {
+    setFilteredItineraries(itineraries);
+  }, [itineraries]);
+
+  useEffect(() => {
+    if (Array.isArray(value)) {
+      const [start, end] = value;
+      setStartDate(start?.format("DD/MM/YYYY"));
+      setEndDate(end?.format("DD/MM/YYYY"));
+    }
+  }, [value]);
+
+  const toggleDestination = (portName) => {
+    setSelectedDestinations((prev) =>
+      prev.includes(portName)
+        ? prev.filter((name) => name !== portName)
+        : [...prev, portName]
+    );
+  };
+
+  const handleDestinationApply = () => {
+    const filteredItinerariesByDestination = filteredItineraries.filter((iti) =>
+      iti?.ports.some((port) => selectedDestinations.includes(port?.name))
+    );
+
+    if (filteredItinerariesByDestination?.length === 0) {
+      setFilteredItineraries(itineraries);
+    } else {
+      setFilteredItineraries(filteredItinerariesByDestination);
+
+      if (endDate) {
+        const dateFilter = `${startDate} - ${endDate}`;
+        setFilterTags([...selectedDestinations, dateFilter]);
+      } else {
+        setFilterTags([...selectedDestinations]); // No date tag if endDate is absent
+      }
+    }
+  };
+
+  const handleDateApply = () => {
+    const parseDate = (dateString) => {
+      if (!dateString || typeof dateString !== "string") {
+        return null; // Return null if dateString is invalid
+      }
+      const [day, month, year] = dateString?.split("/").map(Number);
+      return new Date(year, month - 1, day); // month is zero-indexed
+    };
+
+    const filteredItinerariesByDate = filteredItineraries.filter((iti) => {
+      const itineraryStartDate = parseDate(iti?.start_date);
+      const itineraryEndDate = parseDate(iti?.end_date);
+
+      const filterItineraryStartDate = parseDate(startDate);
+      const filterItineraryEndDate = endDate ? parseDate(endDate) : null;
+
+      return (
+        itineraryStartDate >= filterItineraryStartDate &&
+        (filterItineraryEndDate
+          ? itineraryEndDate <= filterItineraryEndDate
+          : true)
+      );
+    });
+
+    setFilteredItineraries(filteredItinerariesByDate);
+    // const dateFilter = endDate ? `${startDate}-${endDate}` : "";
+    // setFilterTags([...selectedDestinations, dateFilter]);
+
+    if (endDate) {
+      const dateFilter = `${startDate} - ${endDate}`;
+      setFilterTags([...selectedDestinations, dateFilter]);
+    } else {
+      setFilterTags([...selectedDestinations]); // No date tag if endDate is absent
+    }
+  };
+
+  const handleClearFilter = () => {
+    setFilteredItineraries(itineraries);
+    setFilterTags([]);
+    setSelectedDestinations([]);
+    setStartDate(new Date());
+    setEndDate(new Date());
+    setValue(new DateObject());
+  };
+
   return (
     <>
       <div className="w-full mx-auto px-4 lg:px-0 lg:max-w-[1024px] xl:max-w-[1100px]">
@@ -35,18 +137,31 @@ const Cruise = ({ itineraries }) => {
             <PopoverPanel
               transition
               anchor="bottom"
-              className="w-[300px] mt-2 drop-shadow border bg-white text-black divide-y divide-white/5 rounded-xl text-sm/6 transition duration-200 ease-in-out [--anchor-gap:var(--spacing-5)] data-[closed]:-translate-y-1 data-[closed]:opacity-0"
+              className="w-[300px] mt-2 drop-shadow border bg-white text-black divide-y divide-white/5 rounded-lg text-sm/6 transition duration-200 ease-in-out [--anchor-gap:var(--spacing-5)] data-[closed]:-translate-y-1 data-[closed]:opacity-0"
             >
               <div className="p-3">
-                <a
-                  className="block rounded-lg py-2 px-3 transition hover:bg-white/5"
-                  href="#"
+                <p className="font-bold">Select Destination</p>
+                <div className="flex flex-wrap gap-2 my-4">
+                  {itinerariesData?.ports?.map((port, idx) => (
+                    <span
+                      key={port?.name}
+                      onClick={() => toggleDestination(port?.name)}
+                      className={`py-2 px-4 rounded gap-2 cursor-pointer border ${
+                        selectedDestinations.includes(port?.name)
+                          ? "border-[#92278F] text-[#92278F] bg-white"
+                          : "bg-gray-200"
+                      }`}
+                    >
+                      {port?.name}
+                    </span>
+                  ))}
+                </div>
+                <CloseButton
+                  onClick={handleDestinationApply}
+                  className="w-full rounded-md uppercase bg-[#92278F] font-bold text-white py-2"
                 >
-                  <p className="font-semibold">Insights</p>
-                  <p className="">
-                    Measure actions your users take
-                  </p>
-                </a>
+                  Apply
+                </CloseButton>
               </div>
             </PopoverPanel>
           </Popover>
@@ -71,53 +186,52 @@ const Cruise = ({ itineraries }) => {
             <PopoverPanel
               transition
               anchor="bottom"
-              className="w-[300px] mt-2 bg-black divide-y divide-white/5 rounded-xl bg-white/5 text-sm/6 transition duration-200 ease-in-out [--anchor-gap:var(--spacing-5)] data-[closed]:-translate-y-1 data-[closed]:opacity-0"
+              className="w-[300px] mt-2 drop-shadow border bg-white text-black divide-y divide-white/5 rounded-lg text-sm/6 transition duration-200 ease-in-out [--anchor-gap:var(--spacing-5)] data-[closed]:-translate-y-1 data-[closed]:opacity-0"
             >
               <div className="p-3">
-                <a
-                  className="block rounded-lg py-2 px-3 transition hover:bg-white/5"
-                  href="#"
+                <p className="font-bold">Select Sailing Dates</p>
+                <div className="my-3 flex justify-center">
+                  <Calendar
+                    format="DD/MM/YYYY"
+                    value={value}
+                    onChange={setValue}
+                    range
+                    shadow={false}
+                  />
+                </div>
+                <CloseButton
+                  onClick={handleDateApply}
+                  className="w-full rounded-md uppercase bg-[#92278F] font-bold text-white py-2"
                 >
-                  <p className="font-semibold text-white">Insights</p>
-                  <p className="text-white/50">
-                    Measure actions your users take
-                  </p>
-                </a>
-                <a
-                  className="block rounded-lg py-2 px-3 transition hover:bg-white/5"
-                  href="#"
-                >
-                  <p className="font-semibold text-white">Automations</p>
-                  <p className="text-white/50">
-                    Create your own targeted content
-                  </p>
-                </a>
-                <a
-                  className="block rounded-lg py-2 px-3 transition hover:bg-white/5"
-                  href="#"
-                >
-                  <p className="font-semibold text-white">Reports</p>
-                  <p className="text-white/50">Keep track of your growth</p>
-                </a>
-              </div>
-              <div className="p-3">
-                <a
-                  className="block rounded-lg py-2 px-3 transition hover:bg-white/5"
-                  href="#"
-                >
-                  <p className="font-semibold text-white">Documentation</p>
-                  <p className="text-white/50">
-                    Start integrating products and tools
-                  </p>
-                </a>
+                  Apply
+                </CloseButton>
               </div>
             </PopoverPanel>
           </Popover>
         </div>
+        <div className="my-4 flex flex-wrap gap-2">
+          {filterTags?.map((tag) => (
+            <span
+              key={tag}
+              className="p-2 rounded-full border border-[#92278F] text-[#92278F] bg-white"
+            >
+              {tag}
+            </span>
+          ))}{" "}
+          {filterTags?.length > 0 && (
+            <span
+              onClick={handleClearFilter}
+              className="p-2 rounded-full border border-[#92278F] text-[#92278F] bg-white cursor-pointer"
+            >
+              Clear All X
+            </span>
+          )}
+        </div>
         <div className="flex justify-between mt-8">
           <div>
             <p className="text-sm lg:text-lg font-semibold text-gray-600">
-              Cruise Search Results <span>({itineraries?.length || 0})</span>
+              Cruise Search Results{" "}
+              <span>({filteredItineraries?.length || 0})</span>
             </p>
           </div>
           <div className="flex items-center cursor-pointer">
@@ -132,14 +246,20 @@ const Cruise = ({ itineraries }) => {
           </div>
         </div>
         <div className="my-4">
-          {itineraries?.map((itinerary) => {
-            return (
-              <ItineraryCard
-                key={itinerary?.itinerary_id}
-                itinerary={itinerary}
-              />
-            );
-          })}
+          {loading ? (
+            <>Loading...</>
+          ) : filteredItineraries?.length > 0 ? (
+            filteredItineraries?.map((itinerary) => {
+              return (
+                <ItineraryCard
+                  key={itinerary?.itinerary_id}
+                  itinerary={itinerary}
+                />
+              );
+            })
+          ) : (
+            <p>No results found!</p>
+          )}
         </div>
       </div>
       <div></div>
