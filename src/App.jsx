@@ -7,18 +7,19 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchItineraries = () => {
-      setLoading(true);
-      fetch("https://staging.cordeliacruises.com/api/v2/itineraries")
-        .then((res) => res.json())
-        .then((res) => {
-          console.log(res?.itineraries, "res", res);
-          setItinerariesData(res);
-        })
-        .catch((err) => {
-          console.log(err, "err");
-        })
-        .finally(() => setLoading(false));
+    const fetchItineraries = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(
+          "https://staging.cordeliacruises.com/api/v2/itineraries"
+        );
+        const data = await response.json();
+        setItinerariesData(data);
+      } catch (error) {
+        console.error("Failed to fetch itineraries:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchItineraries();

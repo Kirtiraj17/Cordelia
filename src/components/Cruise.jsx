@@ -9,13 +9,13 @@ import {
 import { Calendar, DateObject } from "react-multi-date-picker";
 
 const Cruise = ({ itinerariesData, loading }) => {
-  const { itineraries } = itinerariesData || {};
-  const [filteredItineraries, setFilteredItineraries] = useState([]);
+  const itineraries = itinerariesData?.itineraries || [];
+  const [filteredItineraries, setFilteredItineraries] = useState(itineraries);
   const [filterTags, setFilterTags] = useState([]);
 
   const [selectedDestinations, setSelectedDestinations] = useState([]);
-  const [value, setValue] = useState(new DateObject());
-  const [startDate, setStartDate] = useState(new Date());
+  const [value, setValue] = useState([]);
+  const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   // console.log(value.format("DD/MM/YYYY"), new DateObject())
   // console.log(value[0].day, value[0].month.number, value[0].year)
@@ -26,10 +26,10 @@ const Cruise = ({ itinerariesData, loading }) => {
   }, [itineraries]);
 
   useEffect(() => {
-    if (Array.isArray(value)) {
+    if (Array.isArray(value) && value.length === 2) {
       const [start, end] = value;
-      setStartDate(start?.format("DD/MM/YYYY"));
-      setEndDate(end?.format("DD/MM/YYYY"));
+      setStartDate(start?.format("DD/MM/YYYY") || null);
+      setEndDate(end?.format("DD/MM/YYYY") || null);
     }
   }, [value]);
 
@@ -41,68 +41,50 @@ const Cruise = ({ itinerariesData, loading }) => {
     );
   };
 
-  const handleDestinationApply = () => {
-    const filteredItinerariesByDestination = filteredItineraries.filter((iti) =>
-      iti?.ports.some((port) => selectedDestinations.includes(port?.name))
-    );
-
-    if (filteredItinerariesByDestination?.length === 0) {
-      setFilteredItineraries(itineraries);
-    } else {
-      setFilteredItineraries(filteredItinerariesByDestination);
-
-      if (endDate) {
-        const dateFilter = `${startDate} - ${endDate}`;
-        setFilterTags([...selectedDestinations, dateFilter]);
-      } else {
-        setFilterTags([...selectedDestinations]); // No date tag if endDate is absent
-      }
-    }
-  };
-
-  const handleDateApply = () => {
+  const applyFilters = () => {
     const parseDate = (dateString) => {
       if (!dateString || typeof dateString !== "string") {
-        return null; // Return null if dateString is invalid
+        return null;
       }
       const [day, month, year] = dateString?.split("/").map(Number);
-      return new Date(year, month - 1, day); // month is zero-indexed
+      return new Date(year, month - 1, day);
     };
 
-    const filteredItinerariesByDate = filteredItineraries.filter((iti) => {
+    const filterStartDate = startDate ? parseDate(startDate) : null;
+    const filterEndDate = endDate ? parseDate(endDate) : null;
+
+    const results = itineraries.filter((iti) => {
+      const matchesDestination =
+        selectedDestinations.length === 0 ||
+        iti?.ports?.some((port) => selectedDestinations.includes(port?.name));
+
       const itineraryStartDate = parseDate(iti?.start_date);
       const itineraryEndDate = parseDate(iti?.end_date);
+      const matchesDate =
+        (!filterStartDate || itineraryStartDate >= filterStartDate) &&
+        (!filterEndDate || itineraryEndDate <= filterEndDate);
 
-      const filterItineraryStartDate = parseDate(startDate);
-      const filterItineraryEndDate = endDate ? parseDate(endDate) : null;
-
-      return (
-        itineraryStartDate >= filterItineraryStartDate &&
-        (filterItineraryEndDate
-          ? itineraryEndDate <= filterItineraryEndDate
-          : true)
-      );
+      return matchesDestination && matchesDate;
     });
 
-    setFilteredItineraries(filteredItinerariesByDate);
-    // const dateFilter = endDate ? `${startDate}-${endDate}` : "";
-    // setFilterTags([...selectedDestinations, dateFilter]);
+    setFilteredItineraries(results);
+    updateFilterTags();
+  };
 
-    if (endDate) {
-      const dateFilter = `${startDate} - ${endDate}`;
-      setFilterTags([...selectedDestinations, dateFilter]);
-    } else {
-      setFilterTags([...selectedDestinations]); // No date tag if endDate is absent
-    }
+  const updateFilterTags = () => {
+    const dateTag = endDate ? `${startDate} - ${endDate}` : null;
+    const tags = [...selectedDestinations];
+    if (dateTag) tags.push(dateTag);
+    setFilterTags(tags);
   };
 
   const handleClearFilter = () => {
     setFilteredItineraries(itineraries);
     setFilterTags([]);
     setSelectedDestinations([]);
-    setStartDate(new Date());
-    setEndDate(new Date());
-    setValue(new DateObject());
+    setStartDate(null);
+    setEndDate(null);
+    setValue([]);
   };
 
   return (
@@ -114,9 +96,9 @@ const Cruise = ({ itinerariesData, loading }) => {
           </h1>
         </div>
         <div className="flex justify-center rounded-sm">
-          <Popover>
-            <PopoverButton className="block text-sm/6 font-semibold text-white/50 focus:outline-none data-[active]:text-white data-[hover]:text-white data-[focus]:outline-1 data-[focus]:outline-white">
-              <div className="w-[300px] drop-shadow rounded-l-lg overflow-hidden border border-gray-200 shadow-allSide px-4 lg:px-8 py-4 cursor-pointer flex items-center justify-between text-gray-100 text-sm lg:text-lg font-medium">
+          <Popover className="w-full lg:w-auto">
+            <PopoverButton className="w-full lg:w-auto block text-sm/6 font-semibold text-white/50 focus:outline-none data-[active]:text-white data-[hover]:text-white data-[focus]:outline-1 data-[focus]:outline-white">
+              <div className="w-full lg:w-[300px] drop-shadow rounded-l-lg overflow-hidden border border-gray-200 shadow-allSide px-4 lg:px-8 py-4 cursor-pointer flex items-center justify-between text-gray-100 text-sm lg:text-lg font-medium">
                 <div className="flex items-center">
                   <img
                     className="h-4 lg:h-6 mr-2"
@@ -157,7 +139,7 @@ const Cruise = ({ itinerariesData, loading }) => {
                   ))}
                 </div>
                 <CloseButton
-                  onClick={handleDestinationApply}
+                  onClick={applyFilters}
                   className="w-full rounded-md uppercase bg-[#92278F] font-bold text-white py-2"
                 >
                   Apply
@@ -165,9 +147,9 @@ const Cruise = ({ itinerariesData, loading }) => {
               </div>
             </PopoverPanel>
           </Popover>
-          <Popover>
-            <PopoverButton className="block text-sm/6 font-semibold text-white/50 focus:outline-none data-[active]:text-white data-[hover]:text-white data-[focus]:outline-1 data-[focus]:outline-white">
-              <div className="w-[300px] drop-shadow rounded-r-lg overflow-hidden border border-gray-200 shadow-allSide px-4 lg:px-8 py-4 cursor-pointer flex items-center justify-between text-gray-100 text-sm lg:text-lg font-medium">
+          <Popover className="w-full lg:w-auto">
+            <PopoverButton className="w-full lg:w-auto block text-sm/6 font-semibold text-white/50 focus:outline-none data-[active]:text-white data-[hover]:text-white data-[focus]:outline-1 data-[focus]:outline-white">
+              <div className="w-full lg:w-[300px] drop-shadow rounded-r-lg overflow-hidden border border-gray-200 shadow-allSide px-4 lg:px-8 py-4 cursor-pointer flex items-center justify-between text-gray-100 text-sm lg:text-lg font-medium">
                 <div className="flex items-center">
                   <img
                     className="h-4 lg:h-6 mr-2"
@@ -200,7 +182,7 @@ const Cruise = ({ itinerariesData, loading }) => {
                   />
                 </div>
                 <CloseButton
-                  onClick={handleDateApply}
+                  onClick={applyFilters}
                   className="w-full rounded-md uppercase bg-[#92278F] font-bold text-white py-2"
                 >
                   Apply
@@ -213,7 +195,7 @@ const Cruise = ({ itinerariesData, loading }) => {
           {filterTags?.map((tag) => (
             <span
               key={tag}
-              className="p-2 rounded-full border border-[#92278F] text-[#92278F] bg-white"
+              className="p-2 rounded-full border border-[#92278F] text-[#92278F] bg-white text-xs lg:text-base font-semibold"
             >
               {tag}
             </span>
@@ -221,7 +203,7 @@ const Cruise = ({ itinerariesData, loading }) => {
           {filterTags?.length > 0 && (
             <span
               onClick={handleClearFilter}
-              className="p-2 rounded-full border border-[#92278F] text-[#92278F] bg-white cursor-pointer"
+              className="p-2 rounded-full border border-[#92278F] text-[#92278F] bg-white text-xs lg:text-base font-semibold cursor-pointer"
             >
               Clear All X
             </span>
@@ -247,7 +229,7 @@ const Cruise = ({ itinerariesData, loading }) => {
         </div>
         <div className="my-4">
           {loading ? (
-            <>Loading...</>
+            <p>Loading...</p>
           ) : filteredItineraries?.length > 0 ? (
             filteredItineraries?.map((itinerary) => {
               return (
