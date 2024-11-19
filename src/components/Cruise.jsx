@@ -27,6 +27,7 @@ const Cruise = ({ itinerariesData, loading }) => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   let [isOpen, setIsOpen] = useState(false);
+  const [sailDates, setSailDates] = useState([]);
   // const [isMobile, setIsMobile] = useState(false);
 
   function open() {
@@ -59,6 +60,14 @@ const Cruise = ({ itinerariesData, loading }) => {
         !filteredItineraries.every((iti, idx) => iti === itineraries[idx]))
     ) {
       setFilteredItineraries(itineraries);
+      setSailDates(
+        itineraries?.map((itinenary) => {
+          const [day, month, year] = itinenary?.start_date
+            .split("/")
+            .map(Number);
+          return new DateObject(new Date(year, month - 1, day));
+        })
+      );
     }
   }, [itineraries]);
 
@@ -209,8 +218,14 @@ const Cruise = ({ itinerariesData, loading }) => {
                 className="w-[300px] mt-2 drop-shadow border bg-white text-black divide-y divide-white/5 rounded-lg text-sm/6 transition duration-200 ease-in-out [--anchor-gap:var(--spacing-5)] data-[closed]:-translate-y-1 data-[closed]:opacity-0"
               >
                 <div className="p-3">
-                  <p className="font-bold">Select Sailing Dates</p>
-                  <div className="my-3 flex justify-center">
+                  <div className="flex justify-between">
+                    <p className="font-bold">Select Sailing Dates</p>
+                    <div className="flex gap-2">
+                      <div className="w-4 h-4 bg-[#FFE1DB] rounded-full" />
+                      <p className="text-xs font-semibold">Sailing Date</p>
+                    </div>
+                  </div>
+                  <div className="my-3 flex justify-center items-center">
                     <Calendar
                       format="DD/MM/YYYY"
                       value={value}
@@ -218,6 +233,22 @@ const Cruise = ({ itinerariesData, loading }) => {
                       range
                       shadow={false}
                       weekDays={weekDays}
+                      weekStartDayIndex={1}
+                      mapDays={({ date, isSameDate }) => {
+                        const isHighlighted = sailDates.some((highlightDate) =>
+                          isSameDate(date, highlightDate)
+                        );
+
+                        if (isHighlighted)
+                          return {
+                            style: {
+                              backgroundColor: "#FFE1DB",
+                              color: "#000",
+                            }, // Highlight style
+                          };
+
+                        return {}; // Default styles for other days
+                      }}
                     />
                   </div>
                   <CloseButton
@@ -313,7 +344,15 @@ const Cruise = ({ itinerariesData, loading }) => {
                         </div>
                       </div>
                       <div className="border-t border-gray-200 pt-4">
-                        <p className="font-bold">Select Sailing Dates</p>
+                        <div className="flex justify-between items-center">
+                          <p className="font-bold">Select Sailing Dates</p>
+                          <div className="flex gap-2">
+                            <div className="w-4 h-4 bg-[#FFE1DB] rounded-full" />
+                            <p className="text-xs font-semibold">
+                              Sailing Date
+                            </p>
+                          </div>
+                        </div>
                         <div className="my-3 flex justify-center">
                           <Calendar
                             format="DD/MM/YYYY"
@@ -322,6 +361,23 @@ const Cruise = ({ itinerariesData, loading }) => {
                             range
                             shadow={false}
                             weekDays={weekDays}
+                            weekStartDayIndex={1}
+                            mapDays={({ date, isSameDate }) => {
+                              const isHighlighted = sailDates.some(
+                                (highlightDate) =>
+                                  isSameDate(date, highlightDate)
+                              );
+
+                              if (isHighlighted)
+                                return {
+                                  style: {
+                                    backgroundColor: "#FFE1DB",
+                                    color: "#000",
+                                  }, // Highlight style
+                                };
+
+                              return {}; // Default styles for other days
+                            }}
                           />
                         </div>
                         <CloseButton
