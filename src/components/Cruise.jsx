@@ -218,14 +218,14 @@ const Cruise = ({ itinerariesData, loading }) => {
                 className="w-[300px] mt-2 drop-shadow border bg-white text-black divide-y divide-white/5 rounded-lg text-sm/6 transition duration-200 ease-in-out [--anchor-gap:var(--spacing-5)] data-[closed]:-translate-y-1 data-[closed]:opacity-0"
               >
                 <div className="p-3">
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <p className="font-bold">Select Sailing Dates</p>
                     <div className="flex gap-2">
                       <div className="w-4 h-4 bg-[#FFE1DB] rounded-full" />
                       <p className="text-xs font-semibold">Sailing Date</p>
                     </div>
                   </div>
-                  <div className="my-3 flex justify-center items-center">
+                  <div className="my-3 flex justify-center">
                     <Calendar
                       format="DD/MM/YYYY"
                       value={value}
