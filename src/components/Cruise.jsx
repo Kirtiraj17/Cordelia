@@ -5,24 +5,61 @@ import {
   Popover,
   PopoverButton,
   PopoverPanel,
+  Button,
+  Dialog,
+  DialogPanel,
+  DialogBackdrop,
 } from "@headlessui/react";
 import { Calendar, DateObject } from "react-multi-date-picker";
+import { isMobile } from "react-device-detect";
+
+const weekDays = ["S", "M", "T", "W", "T", "F", "S"];
 
 const Cruise = ({ itinerariesData, loading }) => {
   const itineraries = itinerariesData?.itineraries || [];
-  const [filteredItineraries, setFilteredItineraries] = useState(itineraries);
+  const [filteredItineraries, setFilteredItineraries] = useState(
+    itineraries || []
+  );
   const [filterTags, setFilterTags] = useState([]);
 
   const [selectedDestinations, setSelectedDestinations] = useState([]);
   const [value, setValue] = useState([]);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-  // console.log(value.format("DD/MM/YYYY"), new DateObject())
-  // console.log(value[0].day, value[0].month.number, value[0].year)
-  // console.log(value[0]?.format("DD/MM/YYYY"), startDate?.getDate(), endDate?.getDate());
+  let [isOpen, setIsOpen] = useState(false);
+  // const [isMobile, setIsMobile] = useState(false);
+
+  function open() {
+    setIsOpen(true);
+  }
+
+  function close() {
+    setIsOpen(false);
+  }
+
+  // useEffect(() => {
+  //   const resize = () => {
+  //     if (window.innerWidth >= 768) {
+  //       setIsMobile(true);
+  //     } else {
+  //       setIsMobile(false);
+  //     }
+  //   };
+
+  //   window.addEventListener("resize", resize);
+
+  //   return () => removeEventListener("resize", resize);
+  // }, []);
 
   useEffect(() => {
-    setFilteredItineraries(itineraries);
+    // Update filteredItineraries only when the itineraries array changes
+    if (
+      itineraries.length > 0 &&
+      (filteredItineraries.length !== itineraries.length ||
+        !filteredItineraries.every((iti, idx) => iti === itineraries[idx]))
+    ) {
+      setFilteredItineraries(itineraries);
+    }
   }, [itineraries]);
 
   useEffect(() => {
@@ -95,102 +132,212 @@ const Cruise = ({ itinerariesData, loading }) => {
             Explore Cruise Holidays
           </h1>
         </div>
-        <div className="flex justify-center rounded-sm">
-          <Popover className="w-full lg:w-auto">
-            <PopoverButton className="w-full lg:w-auto block text-sm/6 font-semibold text-white/50 focus:outline-none data-[active]:text-white data-[hover]:text-white data-[focus]:outline-1 data-[focus]:outline-white">
-              <div className="w-full lg:w-[300px] drop-shadow rounded-l-lg overflow-hidden border border-gray-200 shadow-allSide px-4 lg:px-8 py-4 cursor-pointer flex items-center justify-between text-gray-100 text-sm lg:text-lg font-medium">
-                <div className="flex items-center">
+        {!isMobile ? (
+          <div className="flex justify-center rounded-sm">
+            <Popover className="w-full lg:w-auto">
+              <PopoverButton className="w-full lg:w-auto block text-sm/6 font-semibold text-white/50 focus:outline-none data-[active]:text-white data-[hover]:text-white data-[focus]:outline-1 data-[focus]:outline-white">
+                <div className="w-full lg:w-[300px] drop-shadow rounded-l-lg overflow-hidden border border-gray-200 shadow-allSide px-4 lg:px-8 py-4 cursor-pointer flex items-center justify-between text-gray-100 text-sm lg:text-lg font-medium">
+                  <div className="flex items-center">
+                    <img
+                      className="h-4 lg:h-6 mr-2"
+                      src="https://images.cordeliacruises.com/cordelia_v2/public/assets/destination-upcoming-icon.svg"
+                      alt=""
+                    />
+                    <p className="text-gray-600 text-xs lg:text-lg">
+                      Destinations
+                    </p>
+                  </div>
                   <img
                     className="h-4 lg:h-6 mr-2"
-                    src="https://images.cordeliacruises.com/cordelia_v2/public/assets/destination-upcoming-icon.svg"
+                    src="https://images.cordeliacruises.com/cordelia_v2/public/assets/dropdown-arow-booking-icon.svg"
                     alt=""
                   />
-                  <p className="text-gray-600 text-xs lg:text-lg">
-                    Destinations
-                  </p>
                 </div>
-                <img
-                  className="h-4 lg:h-6 mr-2"
-                  src="https://images.cordeliacruises.com/cordelia_v2/public/assets/dropdown-arow-booking-icon.svg"
-                  alt=""
-                />
+              </PopoverButton>
+              <PopoverPanel
+                transition
+                anchor="bottom"
+                className="w-[300px] mt-2 drop-shadow border bg-white text-black divide-y divide-white/5 rounded-lg text-sm/6 transition duration-200 ease-in-out [--anchor-gap:var(--spacing-5)] data-[closed]:-translate-y-1 data-[closed]:opacity-0"
+              >
+                <div className="p-3">
+                  <p className="font-bold">Select Destination</p>
+                  <div className="flex flex-wrap gap-2 my-4">
+                    {itinerariesData?.ports?.map((port, idx) => (
+                      <span
+                        key={port?.name}
+                        onClick={() => toggleDestination(port?.name)}
+                        className={`py-2 px-4 rounded gap-2 cursor-pointer border ${
+                          selectedDestinations.includes(port?.name)
+                            ? "border-[#92278F] text-[#92278F] bg-white"
+                            : "bg-gray-200"
+                        }`}
+                      >
+                        {port?.name}
+                      </span>
+                    ))}
+                  </div>
+                  <CloseButton
+                    onClick={applyFilters}
+                    className="w-full rounded-md uppercase bg-[#92278F] font-bold text-white py-2"
+                  >
+                    Apply
+                  </CloseButton>
+                </div>
+              </PopoverPanel>
+            </Popover>
+            <Popover className="w-full lg:w-auto">
+              <PopoverButton className="w-full lg:w-auto block text-sm/6 font-semibold text-white/50 focus:outline-none data-[active]:text-white data-[hover]:text-white data-[focus]:outline-1 data-[focus]:outline-white">
+                <div className="w-full lg:w-[300px] drop-shadow rounded-r-lg overflow-hidden border border-gray-200 shadow-allSide px-4 lg:px-8 py-4 cursor-pointer flex items-center justify-between text-gray-100 text-sm lg:text-lg font-medium">
+                  <div className="flex items-center">
+                    <img
+                      className="h-4 lg:h-6 mr-2"
+                      src="https://images.cordeliacruises.com/cordelia_v2/public/assets/calendar-upcoming-icon.svg"
+                      alt=""
+                    />
+                    <p className="text-gray-600 text-xs lg:text-lg">Dates</p>
+                  </div>
+                  <img
+                    className="h-4 lg:h-6 mr-2"
+                    src="https://images.cordeliacruises.com/cordelia_v2/public/assets/dropdown-arow-booking-icon.svg"
+                    alt=""
+                  />
+                </div>
+              </PopoverButton>
+              <PopoverPanel
+                transition
+                anchor="bottom"
+                className="w-[300px] mt-2 drop-shadow border bg-white text-black divide-y divide-white/5 rounded-lg text-sm/6 transition duration-200 ease-in-out [--anchor-gap:var(--spacing-5)] data-[closed]:-translate-y-1 data-[closed]:opacity-0"
+              >
+                <div className="p-3">
+                  <p className="font-bold">Select Sailing Dates</p>
+                  <div className="my-3 flex justify-center">
+                    <Calendar
+                      format="DD/MM/YYYY"
+                      value={value}
+                      onChange={setValue}
+                      range
+                      shadow={false}
+                      weekDays={weekDays}
+                    />
+                  </div>
+                  <CloseButton
+                    onClick={applyFilters}
+                    className="w-full rounded-md uppercase bg-[#92278F] font-bold text-white py-2"
+                  >
+                    Apply
+                  </CloseButton>
+                </div>
+              </PopoverPanel>
+            </Popover>
+          </div>
+        ) : (
+          <>
+            <Button onClick={open} className="w-full">
+              <div className="flex justify-center rounded-sm">
+                <Popover className="w-full lg:w-auto">
+                  <button className="w-full lg:w-auto block text-sm/6 font-semibold text-white/50 focus:outline-none data-[active]:text-white data-[hover]:text-white data-[focus]:outline-1 data-[focus]:outline-white">
+                    <div className="w-full lg:w-[300px] drop-shadow rounded-l-lg overflow-hidden border border-gray-200 shadow-allSide px-4 lg:px-8 py-4 cursor-pointer flex items-center justify-between text-gray-100 text-sm lg:text-lg font-medium">
+                      <div className="flex items-center">
+                        <img
+                          className="h-4 lg:h-6 mr-2"
+                          src="https://images.cordeliacruises.com/cordelia_v2/public/assets/destination-upcoming-icon.svg"
+                          alt=""
+                        />
+                        <p className="text-gray-600 text-xs lg:text-lg">
+                          Destinations
+                        </p>
+                      </div>
+                      <img
+                        className="h-4 lg:h-6 mr-2"
+                        src="https://images.cordeliacruises.com/cordelia_v2/public/assets/dropdown-arow-booking-icon.svg"
+                        alt=""
+                      />
+                    </div>
+                  </button>
+                </Popover>
+                <Popover className="w-full lg:w-auto">
+                  <button className="w-full lg:w-auto block text-sm/6 font-semibold text-white/50 focus:outline-none data-[active]:text-white data-[hover]:text-white data-[focus]:outline-1 data-[focus]:outline-white">
+                    <div className="w-full lg:w-[300px] drop-shadow rounded-r-lg overflow-hidden border border-gray-200 shadow-allSide px-4 lg:px-8 py-4 cursor-pointer flex items-center justify-between text-gray-100 text-sm lg:text-lg font-medium">
+                      <div className="flex items-center">
+                        <img
+                          className="h-4 lg:h-6 mr-2"
+                          src="https://images.cordeliacruises.com/cordelia_v2/public/assets/calendar-upcoming-icon.svg"
+                          alt=""
+                        />
+                        <p className="text-gray-600 text-xs lg:text-lg">
+                          Dates
+                        </p>
+                      </div>
+                      <img
+                        className="h-4 lg:h-6 mr-2"
+                        src="https://images.cordeliacruises.com/cordelia_v2/public/assets/dropdown-arow-booking-icon.svg"
+                        alt=""
+                      />
+                    </div>
+                  </button>
+                </Popover>
               </div>
-            </PopoverButton>
-            <PopoverPanel
-              transition
-              anchor="bottom"
-              className="w-[300px] mt-2 drop-shadow border bg-white text-black divide-y divide-white/5 rounded-lg text-sm/6 transition duration-200 ease-in-out [--anchor-gap:var(--spacing-5)] data-[closed]:-translate-y-1 data-[closed]:opacity-0"
+            </Button>
+            <Dialog
+              open={isOpen}
+              as="div"
+              className="relative z-10 focus:outline-none"
+              onClose={close}
             >
-              <div className="p-3">
-                <p className="font-bold">Select Destination</p>
-                <div className="flex flex-wrap gap-2 my-4">
-                  {itinerariesData?.ports?.map((port, idx) => (
-                    <span
-                      key={port?.name}
-                      onClick={() => toggleDestination(port?.name)}
-                      className={`py-2 px-4 rounded gap-2 cursor-pointer border ${
-                        selectedDestinations.includes(port?.name)
-                          ? "border-[#92278F] text-[#92278F] bg-white"
-                          : "bg-gray-200"
-                      }`}
+              <DialogBackdrop
+                transition
+                className="fixed inset-0 bg-gray-500/75 transition-opacity data-[closed]:opacity-0 data-[enter]:duration-300 data-[leave]:duration-200 data-[enter]:ease-out data-[leave]:ease-in"
+              >
+                <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+                  <div className="flex min-h-full items-center justify-center p-4">
+                    <DialogPanel
+                      transition
+                      className="w-full max-w-md rounded-xl bg-white p-6 backdrop-blur-2xl duration-300 ease-out data-[closed]:transform-[scale(95%)] data-[closed]:opacity-0"
                     >
-                      {port?.name}
-                    </span>
-                  ))}
+                      <div>
+                        <p className="font-bold">Select Destination</p>
+                        <div className="flex flex-wrap gap-2 my-4">
+                          {itinerariesData?.ports?.map((port, idx) => (
+                            <span
+                              key={port?.name}
+                              onClick={() => toggleDestination(port?.name)}
+                              className={`py-2 px-4 rounded gap-2 cursor-pointer border ${
+                                selectedDestinations.includes(port?.name)
+                                  ? "border-[#92278F] text-[#92278F] bg-white"
+                                  : "bg-gray-200"
+                              }`}
+                            >
+                              {port?.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="border-t border-gray-200 pt-4">
+                        <p className="font-bold">Select Sailing Dates</p>
+                        <div className="my-3 flex justify-center">
+                          <Calendar
+                            format="DD/MM/YYYY"
+                            value={value}
+                            onChange={setValue}
+                            range
+                            shadow={false}
+                            weekDays={weekDays}
+                          />
+                        </div>
+                        <CloseButton
+                          onClick={applyFilters}
+                          className="w-full rounded-md uppercase bg-[#92278F] font-bold text-white py-2"
+                        >
+                          Apply
+                        </CloseButton>
+                      </div>
+                    </DialogPanel>
+                  </div>
                 </div>
-                <CloseButton
-                  onClick={applyFilters}
-                  className="w-full rounded-md uppercase bg-[#92278F] font-bold text-white py-2"
-                >
-                  Apply
-                </CloseButton>
-              </div>
-            </PopoverPanel>
-          </Popover>
-          <Popover className="w-full lg:w-auto">
-            <PopoverButton className="w-full lg:w-auto block text-sm/6 font-semibold text-white/50 focus:outline-none data-[active]:text-white data-[hover]:text-white data-[focus]:outline-1 data-[focus]:outline-white">
-              <div className="w-full lg:w-[300px] drop-shadow rounded-r-lg overflow-hidden border border-gray-200 shadow-allSide px-4 lg:px-8 py-4 cursor-pointer flex items-center justify-between text-gray-100 text-sm lg:text-lg font-medium">
-                <div className="flex items-center">
-                  <img
-                    className="h-4 lg:h-6 mr-2"
-                    src="https://images.cordeliacruises.com/cordelia_v2/public/assets/calendar-upcoming-icon.svg"
-                    alt=""
-                  />
-                  <p className="text-gray-600 text-xs lg:text-lg">Dates</p>
-                </div>
-                <img
-                  className="h-4 lg:h-6 mr-2"
-                  src="https://images.cordeliacruises.com/cordelia_v2/public/assets/dropdown-arow-booking-icon.svg"
-                  alt=""
-                />
-              </div>
-            </PopoverButton>
-            <PopoverPanel
-              transition
-              anchor="bottom"
-              className="w-[300px] mt-2 drop-shadow border bg-white text-black divide-y divide-white/5 rounded-lg text-sm/6 transition duration-200 ease-in-out [--anchor-gap:var(--spacing-5)] data-[closed]:-translate-y-1 data-[closed]:opacity-0"
-            >
-              <div className="p-3">
-                <p className="font-bold">Select Sailing Dates</p>
-                <div className="my-3 flex justify-center">
-                  <Calendar
-                    format="DD/MM/YYYY"
-                    value={value}
-                    onChange={setValue}
-                    range
-                    shadow={false}
-                  />
-                </div>
-                <CloseButton
-                  onClick={applyFilters}
-                  className="w-full rounded-md uppercase bg-[#92278F] font-bold text-white py-2"
-                >
-                  Apply
-                </CloseButton>
-              </div>
-            </PopoverPanel>
-          </Popover>
-        </div>
+              </DialogBackdrop>
+            </Dialog>
+          </>
+        )}
         <div className="my-4 flex flex-wrap gap-2">
           {filterTags?.map((tag) => (
             <span
